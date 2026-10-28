@@ -7,7 +7,7 @@ describe('analyzeProject', () => {
 
   it('should analyze current project', () => {
     const analysis = analyzeProject(rootDir);
-    expect(analysis.name).toBe('readme-forge');
+    expect(analysis.name).toBe('@scuton/readme-forge');
     expect(analysis.language).toBe('typescript');
     expect(analysis.hasDocker).toBe(false);
   });
