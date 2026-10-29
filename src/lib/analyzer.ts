@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
-import { join, relative, extname } from 'path';
+import { join, relative, extname, basename, resolve } from 'path';
 import ignore, { type Ignore } from 'ignore';
 import {
   readFileSafe,
@@ -227,7 +227,7 @@ export function analyzeProject(dir: string = '.'): ProjectAnalysis {
   const packageManager = detectPackageManager(dir);
 
   return {
-    name: pkg?.name ?? dir.split('/').pop() ?? dir.split('\\').pop() ?? 'unknown',
+    name: pkg?.name ?? (basename(resolve(dir)) || 'unknown'),
     description: pkg?.description ?? '',
     language,
     packageManager,

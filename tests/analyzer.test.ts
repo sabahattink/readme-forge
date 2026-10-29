@@ -1,9 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { analyzeProject } from '../src/lib/analyzer.js';
-import { join } from 'path';
+import { join, sep } from 'path';
+import { mkdtempSync, mkdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 
 describe('analyzeProject', () => {
   const rootDir = join(import.meta.dirname, '..');
+
+  it('should fall back to the directory basename when there is no package.json', () => {
+    const base = mkdtempSync(join(tmpdir(), 'rf-name-'));
+    const projectDir = join(base, 'my-go-project');
+    mkdirSync(projectDir);
+    try {
+      expect(analyzeProject(projectDir).name).toBe('my-go-project');
+      expect(analyzeProject(projectDir + sep).name).toBe('my-go-project');
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
 
   it('should analyze current project', () => {
     const analysis = analyzeProject(rootDir);
