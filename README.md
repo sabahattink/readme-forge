@@ -80,11 +80,11 @@ readme-forge toc
 3. Sends analysis to Claude (your API key, your data)
 4. Returns clean Markdown — no fluff, no hallucination
 
-Your code is NOT sent to the API. Only metadata (file names, package names, scripts) is sent.
+What is sent to the API: package name/description, scripts, dependency names, the file tree, `.env.example` variable names (not values), the last 5 commit subjects, and the **first 50 lines of your entry file** (e.g. `src/index.ts`) so the README can describe the API accurately. Nothing else from your source is sent.
 
 ## Privacy
 
-- Your source code stays local. Only project metadata is sent to Anthropic's API.
+- Apart from the entry-file preview above, your source code stays local; only project metadata is sent to Anthropic's API.
 - Your API key is used directly — we don't proxy or store anything.
 - `check`, `badge`, and `toc` commands work 100% offline.
 
