@@ -36,6 +36,12 @@
     "url": "https://github.com/scuton-technology/readme-forge.git"
   },
   "homepage": "https://github.com/scuton-technology/readme-forge",
+  "bugs": {
+    "url": "https://github.com/scuton-technology/readme-forge/issues"
+  },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18"
   },
