@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { detectBadges, formatBadges } from '../src/lib/badges.js';
+import { detectBadges, formatBadges, parseGitHubSlug } from '../src/lib/badges.js';
 import { join } from 'path';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 
 describe('badge detection', () => {
   const rootDir = join(import.meta.dirname, '..');
@@ -43,5 +45,28 @@ describe('badge detection', () => {
     const formatted = formatBadges(badges);
     expect(formatted).toContain('[![');
     expect(formatted).toContain('img.shields.io');
+  });
+});
+
+describe('GitHub repo slug', () => {
+  it('parses SSH, HTTPS and ssh:// remotes', () => {
+    expect(parseGitHubSlug('git@github.com:owner/repo.git')).toBe('owner/repo');
+    expect(parseGitHubSlug('https://github.com/owner/repo.git')).toBe('owner/repo');
+    expect(parseGitHubSlug('https://github.com/owner/repo')).toBe('owner/repo');
+    expect(parseGitHubSlug('ssh://git@github.com/owner/repo.git')).toBe('owner/repo');
+  });
+
+  it('returns null for non-GitHub remotes', () => {
+    expect(parseGitHubSlug('https://gitlab.com/owner/repo.git')).toBeNull();
+  });
+
+  it('never emits a placeholder owner/repo link when the remote is unknown', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rf-badge-'));
+    try {
+      const md = formatBadges(detectBadges(dir));
+      expect(md).not.toContain('owner/repo');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { readJsonSafe, detectLicense } from '../utils/helpers.js';
+import { readJsonSafe, detectLicense, execSafe } from '../utils/helpers.js';
 
 interface PackageJson {
   name?: string;
@@ -16,6 +16,7 @@ export interface Badge {
 export function detectBadges(dir: string = '.'): Badge[] {
   const badges: Badge[] = [];
   const pkg = readJsonSafe<PackageJson>(join(dir, 'package.json'));
+  const repoSlug = getRepoSlug(dir);
 
   // npm version
   if (pkg?.name) {
@@ -54,12 +55,10 @@ export function detectBadges(dir: string = '.'): Badge[] {
 
   // CI status (GitHub Actions)
   if (existsSync(join(dir, '.github/workflows'))) {
-    // Try to detect repo name for CI badge
-    const repoUrl = getRepoSlug(dir);
-    if (repoUrl) {
+    if (repoSlug) {
       badges.push({
         label: 'CI',
-        markdown: `[![CI](https://github.com/${repoUrl}/actions/workflows/ci.yml/badge.svg)](https://github.com/${repoUrl}/actions/workflows/ci.yml)`,
+        markdown: `[![CI](https://github.com/${repoSlug}/actions/workflows/ci.yml/badge.svg)](https://github.com/${repoSlug}/actions/workflows/ci.yml)`,
       });
     }
   }
@@ -72,29 +71,31 @@ export function detectBadges(dir: string = '.'): Badge[] {
     });
   }
 
-  // PRs Welcome
-  badges.push({
-    label: 'PRs Welcome',
-    markdown: `[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/${getRepoSlug(dir) || 'owner/repo'}/pulls)`,
-  });
+  // PRs Welcome (only when the GitHub repo is known; never emit a placeholder link)
+  if (repoSlug) {
+    badges.push({
+      label: 'PRs Welcome',
+      markdown: `[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/${repoSlug}/pulls)`,
+    });
+  }
 
   return badges;
 }
 
+/**
+ * Extract "owner/repo" from a GitHub remote URL
+ * (git@github.com:o/r.git, https://github.com/o/r(.git), ssh://git@github.com/o/r.git).
+ */
+export function parseGitHubSlug(remoteUrl: string): string | null {
+  const match = remoteUrl.trim().match(/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?\/?$/);
+  return match?.[1] ?? null;
+}
+
+// The package is ESM-only, so `require` is not available at runtime; use the
+// statically imported helper instead.
 function getRepoSlug(dir: string): string | null {
-  try {
-    const { execSync } = require('child_process');
-    const url = execSync('git remote get-url origin', { cwd: dir, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-    // SSH: git@github.com:owner/repo.git
-    const sshMatch = url.match(/git@github\.com:(.+?)(?:\.git)?$/);
-    if (sshMatch) return sshMatch[1];
-    // HTTPS: https://github.com/owner/repo.git
-    const httpsMatch = url.match(/github\.com\/(.+?)(?:\.git)?$/);
-    if (httpsMatch) return httpsMatch[1];
-  } catch {
-    // ignore
-  }
-  return null;
+  const url = execSafe('git remote get-url origin', dir);
+  return url ? parseGitHubSlug(url) : null;
 }
 
 export function formatBadges(badges: Badge[]): string {
